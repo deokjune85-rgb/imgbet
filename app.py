@@ -47,10 +47,9 @@ if 'agreed' not in st.session_state: st.session_state.agreed = False
 if 'chat_history' not in st.session_state: st.session_state.chat_history = []
 if 'analyze_match' not in st.session_state: st.session_state.analyze_match = None
 if 'last_analysis' not in st.session_state: st.session_state.last_analysis = None
-if 'temp_chat_input' not in st.session_state: st.session_state.temp_chat_input = None
 
 # 타이핑 함수
-def type_writer(text, placeholder, speed=0.03):
+def type_writer(text, placeholder, speed=0.02):
     display_text = ""
     try:
         for char in text:
@@ -117,52 +116,7 @@ def generate_simulated_data():
     df = df.sort_values(by="Abs_Value", ascending=False).reset_index(drop=True)
     return df.drop(columns=['Abs_Value'])
 
-# ---------------------------------------
-# 3. 딥다이브 분석
-# ---------------------------------------
-def stream_analysis(match_data):
-    match_name = match_data["경기 (Match)"]
-    signal = match_data["AI 시그널"]
-    value_score = match_data['가치 지수 (Value)']
-    
-    analysis_logs = [
-        f"[{time.strftime('%H:%M:%S')}] 📡 Connecting to Global Odds Feed...",
-        f"[{time.strftime('%H:%M:%S')}] 🔍 Analyzing: {match_name}...",
-        f"[{time.strftime('%H:%M:%S')}] 📊 Fetching realtime metrics..."
-    ]
-    if "역배 감지" in signal:
-        analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 🚨 ANOMALY: Home team fatigue detected.")
-    elif "강력 추천" in signal:
-         analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 🔥 MOMENTUM: Home team dominance verified.")
-    analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] ✅ Verdict Generated.")
-    
-    def generator():
-        for log in analysis_logs:
-            for char in log:
-                yield char
-                time.sleep(0.005)
-            yield "\n"
-            time.sleep(0.2)
-
-    st.markdown("#### 분석 로그 (Real-time)")
-    st.markdown('<div class="terminal-output">', unsafe_allow_html=True)
-    st.write_stream(generator())
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown("### AI 최종 코멘트")
-    if "역배 감지" in signal:
-        comment = f"주의: 시장은 홈 승리를 예상하나, AI는 숨겨진 위험을 감지했습니다. 통계적 이변 확률이 높습니다. 고위험 구간입니다."
-    elif "강력 추천" in signal:
-        comment = f"확신: AI 승률이 배당률을 압도합니다(가치 지수: {value_score}%). 시장의 과소평가 구간입니다. 적극 진입 권장."
-    else:
-        comment = f"중립: 시장 예측과 AI 예측이 일치합니다. 뚜렷한 수익 구간이 아닙니다. 관망을 권장합니다."
-        
-    st.session_state.last_analysis = {"match_name": match_name, "signal": signal, "value_score": value_score, "comment": comment}
-    st.session_state.chat_history.append({"role": "assistant", "content": comment, "animated": False})
-
-# ---------------------------------------
-# 4. AI 챗 어시스턴트 (지능형 영업사원)
-# ---------------------------------------
+# 챗봇 응답 로직
 SLANG_DICT = {
     "TRUST": ["확실해", "믿어도", "부러지면", "한강", "진짜", "쫄려", "확신", "맞아?", "ㄹㅇ"],
     "MONEY": ["얼마", "올인", "소액", "강승부", "시드", "배팅", "금액", "전재산"],
@@ -171,50 +125,52 @@ SLANG_DICT = {
 }
 ALIASES = {"맨시티": "맨체스터 시티", "뮌헨": "바이에른 뮌헨", "레알": "레알 마드리드", "바르샤": "바르셀로나", "파리": "파리 생제르맹", "토트넘": "토트넘 홋스퍼"}
 
-def handle_chat_query(query, df):
-    response = ""
+def get_chat_response(query, df):
     query = query.lower()
     for alias, official in ALIASES.items():
         if alias in query: query = query.replace(alias, official)
     
-    # 1. 컨텍스트(방금 본 경기) 활용
     context = st.session_state.last_analysis
     is_context = False
+    response = ""
+
+    # 1. 컨텍스트(방금 본 경기) 활용
     if context and not any(row["경기 (Match)"] != context["match_name"] and row["경기 (Match)"].split(" ")[0] in query for i, row in df.iterrows()):
         if any(k in query for cat in SLANG_DICT.values() for k in cat) or "어때" in query:
             is_context = True
+            match_name = context["match_name"]
+            value = context["value_score"]
             if any(k in query for k in SLANG_DICT["TRUST"]):
-                response = f"[{context['match_name']}] 말씀이시군요. 데이터 신뢰도는 **87% 이상**입니다. 감정 섞지 말고 통계대로 가십시오."
+                response = f"[{match_name}] 데이터 신뢰도는 **87% 이상**입니다. 감정 섞지 말고 통계대로 가십시오."
             elif any(k in query for k in SLANG_DICT["MONEY"]):
                 rec = "강승부 (시드 30%)" if "강력 추천" in context['signal'] else "소액 방어 (시드 10%)"
-                response = f"해당 경기의 데이터 지수를 볼 때, **[{rec}]**를 권장합니다. 욕심부리지 마십시오."
+                response = f"해당 경기의 데이터 지수를 볼 때, **[{rec}]**를 권장합니다."
             else:
-                response = f"방금 분석한 [{context['match_name']}]의 핵심은 이겁니다: \n\n👉 **{context['comment']}**"
+                response = f"방금 분석한 [{match_name}]의 핵심: \n\n👉 **{context['comment']}**"
 
     # 2. 일반 질문 처리
     if not is_context:
         if any(k in query for k in SLANG_DICT["ANOMALY"]):
             underdog = df[df['AI 시그널'].str.contains("역배")]
-            response = f"오늘 가장 강력한 역배 시그널은 **[{underdog.iloc[0]['경기 (Match)'].split(' vs ')[0]}]**에서 포착됐습니다. 자세한 건 Deep Dive 돌려보세요." if not underdog.empty else "현재 위험한 역배 구간은 없습니다. 정배 위주로 가십시오."
+            response = f"오늘 가장 강력한 역배 시그널은 **[{underdog.iloc[0]['경기 (Match)'].split(' vs ')[0]}]**입니다. Deep Dive를 확인하세요." if not underdog.empty else "현재 위험한 역배 구간은 없습니다. 정배 위주로 가십시오."
         elif "추천" in query or "좋아" in query:
             response = "가장 확실한 건 **VIP 3폴더**입니다. 무료 픽은 참고만 하시고, 진짜 수익은 VIP 방에서 챙겨가세요."
-        elif "vip" in query or "구독" in query:
-            response = "VIP는 월 99,000원입니다. 하루 3,300원으로 인생 역전 기회를 잡으십시오. 하단 링크로 문의하세요."
+        elif "vip" in query or "구독" in query or "차이" in query:
+            response = "VIP는 월 99,000원입니다. AI가 찍어주는 **[고배당 역배 조합]**과 **[정확한 스코어]**가 제공됩니다."
         else:
             match_found = False
             for _, row in df.iterrows():
                 if row["경기 (Match)"].split(" ")[0] in query:
-                    response = f"[{row['경기 (Match)']}] 분석 결과: **{row['AI 시그널']}**. 더 깊게 보려면 버튼 눌러서 분석 돌리세요."
+                    response = f"[{row['경기 (Match)']}] 분석 결과: **{row['AI 시그널']}**."
                     match_found = True
                     break
             if not match_found:
-                # 3. 방어 기제 (Fallback) -> 영업으로 연결
-                response = "죄송하지만 점심 메뉴나 잡담은 모릅니다. 저는 오직 **돈 따는 법**만 분석합니다. 오늘 밤 **[필승 조합]**이 궁금하면 VIP 코드를 입력하세요."
-
-    st.session_state.chat_history.append({"role": "assistant", "content": response, "animated": False})
+                response = "잡담은 하지 않습니다. **돈 따는 법**이 궁금하면 '추천해줘'라고 물어보거나 VIP 코드를 입력하세요."
+    
+    return response
 
 # ---------------------------------------
-# 5. 메인 앱
+# 3. 메인 앱
 # ---------------------------------------
 def main_app():
     st.markdown(f"<h1 style='text-align: center; font-family: serif; margin-bottom: 5px; color: #D4AF37;'>Veritas Sports AI</h1>", unsafe_allow_html=True)
@@ -283,19 +239,24 @@ def main_app():
             else:
                 st.markdown(msg["content"])
 
-    # 가이드 칩 (질문 유도)
+    # 가이드 칩 (버튼 클릭 시 즉시 처리)
     st.caption("추천 질문:")
     c1,c2,c3,c4 = st.columns(4)
-    if c1.button("💣 역배 추천"): st.session_state.temp_chat_input = "오늘 역배 있어?"
-    if c2.button("💰 얼마 걸까"): st.session_state.temp_chat_input = "배팅 금액 추천해줘"
-    if c3.button("🤔 확실해?"): st.session_state.temp_chat_input = "이거 진짜 믿어도 돼?"
-    if c4.button("🏆 VIP 차이"): st.session_state.temp_chat_input = "VIP는 뭐가 달라?"
-    if st.session_state.temp_chat_input: st.rerun()
+    
+    # 버튼 로직
+    def click_chip(text):
+        st.session_state.chat_history.append({"role": "user", "content": text, "animated": True})
+        resp = get_chat_response(text, df)
+        st.session_state.chat_history.append({"role": "assistant", "content": resp, "animated": False})
+        st.rerun()
+
+    if c1.button("💣 역배 추천"): click_chip("오늘 역배 있어?")
+    if c2.button("💰 얼마 걸까"): click_chip("배팅 금액 추천해줘")
+    if c3.button("🤔 확실해?"): click_chip("이거 진짜 믿어도 돼?")
+    if c4.button("🏆 VIP 차이"): click_chip("VIP는 뭐가 달라?")
 
     if query := st.chat_input("질문 입력..."):
-        st.session_state.chat_history.append({"role": "user", "content": query, "animated": True})
-        handle_chat_query(query, df)
-        st.rerun()
+        click_chip(query)
 
 if st.session_state.agreed: main_app()
 else: legal_disclaimer_gate()
