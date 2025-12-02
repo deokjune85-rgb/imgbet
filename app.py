@@ -14,86 +14,73 @@ TODAY_CODE = f"ORACLE{datetime.date.today().strftime('%m%d')}"
 MASTER_KEY = "PANTHEON777"
 
 st.set_page_config(
-    page_title="Veritas Sports AI | The Oracle Engine",
-    page_icon="✨",
+    page_title="Veritas Sports AI",
+    page_icon="👁️",
     layout="centered"
 )
 
-# [CSS: Ultra-Premium Dark & Gradient Animation]
+# [CSS: 그라데이션 텍스트 & 페이드인 애니메이션 적용]
 custom_css = """
 <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
-    /* 1. Core Theme */
+    /* 전체 테마 */
     .stApp { background-color: #0A0A0A !important; color: #F5F5F5 !important; font-family: 'Pretendard', sans-serif; }
-
-    /* 2. UI Elements */
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
-    .stDataFrame thead th { background-color: #2C2C2C; color: #D4AF37; font-weight: bold; }
-    .stDataFrame tbody tr:nth-child(even) { background-color: #1A1A1A; }
-    .stDataFrame tbody tr:nth-child(odd) { background-color: #111111; }
-    .vip-section { border: 2px solid #D4AF37; padding: 25px; margin: 20px 0; background-color: #1A1A1A; text-align: center; border-radius: 10px; }
-    .lock-overlay { filter: blur(5px); pointer-events: none; user-select: none; }
+    #MainMenu, footer, header {visibility: hidden;}
     
-    /* 3. Buttons */
-    div.stButton > button, button[kind="primary"] { width: 100%; background-color: #D4AF37 !important; color: #000000 !important; font-weight: bold; border-radius: 8px; padding: 15px; border: none; font-size: 18px; }
-    div.stButton > button:hover, button[kind="primary"]:hover { background-color: #B8860B !important; }
-    
-    /* 4. Legal Shield */
-    .legal-shield { background-color: #1A1A1A; padding: 30px; border-radius: 10px; border: 1px solid #333; }
-
-    /* 5. Terminal Output */
-    .terminal-output p { background-color: #000000 !important; color: #00FF00 !important; font-family: monospace !important; padding: 20px !important; border-radius: 8px !important; border: 1px solid #333 !important; min-height: 150px !important; white-space: pre-wrap !important; }
-    
-    /* 6. Chat Styling */
-    .stChatMessage { padding: 10px 0; }
-    
-    /* [★핵심★] 그라데이션 텍스트 애니메이션 (Fade-In + Gradient) */
-    @keyframes fadeInGradient {
-        0% { opacity: 0; filter: blur(5px); transform: translateY(10px); }
-        100% { opacity: 1; filter: blur(0px); transform: translateY(0); }
-    }
-    
-    .ai-gradient-text {
-        background: linear-gradient(90deg, #D4AF37, #F5F5F5); /* 골드에서 화이트로 */
+    /* AI 응답 텍스트: 그라데이션 & 페이드인 효과 */
+    .ai-response {
+        font-size: 16px;
+        font-weight: 500;
+        background: linear-gradient(90deg, #E0E0E0, #A0A0A0);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-weight: 600;
+        animation: fadeIn 1.5s ease-in-out;
         line-height: 1.6;
-        animation: fadeInGradient 1.5s ease-out forwards;
     }
     
-    /* 생각하는 효과 */
-    .thinking-process {
-        color: #00FF41;
-        font-family: 'Courier New', monospace;
-        font-size: 12px;
-        margin-bottom: 10px;
-        border-left: 2px solid #00FF41;
-        padding-left: 10px;
+    /* 핵심 키워드 강조 (네온 그린) */
+    .highlight {
+        color: #00FF41 !important;
+        -webkit-text-fill-color: #00FF41 !important;
+        font-weight: 800;
+        text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
     }
 
-    /* 가이드 칩 버튼 스타일 */
+    @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(10px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 테이블 스타일 */
+    .stDataFrame thead th { background-color: #1F1F1F; color: #D4AF37; }
+    .stDataFrame tbody tr:nth-child(even) { background-color: #111; }
+    .stDataFrame tbody tr:nth-child(odd) { background-color: #0A0A0A; }
+
+    /* VIP 섹션 */
+    .vip-section { border: 1px solid #D4AF37; padding: 20px; margin: 20px 0; background-color: #0F0F0F; border-radius: 8px; }
+    .lock-overlay { filter: blur(6px); pointer-events: none; user-select: none; }
+
+    /* 버튼 스타일 */
+    div.stButton > button {
+        width: 100%; background-color: #D4AF37 !important; color: #000 !important;
+        font-weight: bold; border-radius: 6px; padding: 12px; border: none;
+    }
+    div.stButton > button:hover { background-color: #F1C40F !important; }
+    
+    /* 가이드 칩 (작은 버튼) */
     div[data-testid="column"] button {
-        background-color: #2C2C2C !important; 
-        color: #AAAAAA !important; 
-        border: 1px solid #444 !important; 
-        border-radius: 20px !important; 
-        padding: 5px 10px !important; 
-        font-size: 13px !important; 
-        width: auto !important; 
-        font-weight: normal !important;
+        background-color: #222 !important; color: #888 !important; border: 1px solid #444 !important;
+        font-size: 12px !important; padding: 5px 10px !important; border-radius: 15px !important;
     }
     div[data-testid="column"] button:hover {
-        border-color: #D4AF37 !important; 
-        color: #D4AF37 !important; 
-        background-color: #444444 !important;
+        border-color: #00FF41 !important; color: #00FF41 !important;
     }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# 세션 초기화
+# 세션 상태 초기화
 if 'unlocked' not in st.session_state: st.session_state.unlocked = False
 if 'agreed' not in st.session_state: st.session_state.agreed = False
 if 'chat_history' not in st.session_state: st.session_state.chat_history = []
@@ -102,28 +89,33 @@ if 'last_analysis' not in st.session_state: st.session_state.last_analysis = Non
 if 'temp_chat_input' not in st.session_state: st.session_state.temp_chat_input = None
 
 # ---------------------------------------
-# 1. 법적 방탄조끼
+# 1. 법적 방탄조끼 (강력한 세션 체크)
 # ---------------------------------------
 def legal_disclaimer_gate():
-    st.markdown('<div class="legal-shield">', unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #D4AF37;'>Veritas Sports AI</h1>", unsafe_allow_html=True)
-    st.error("⚠️ 경고: 서비스 이용 전 동의 필수")
-    with st.form(key='agreement_form'):
-        st.markdown("본 서비스는 스포츠 데이터 분석 및 확률 정보를 제공합니다.")
-        agree1 = st.checkbox("[필수] 결과 면책: AI 예측은 100%가 아니며, 결과에 대한 책임은 본인에게 있습니다.")
-        agree2 = st.checkbox("[필수] 준법 서약: 불법 사설 도박을 금지하며, 합법 투표권 이용을 권장합니다.")
-        agree3 = st.checkbox("[필수] 환불 불가: VIP 코드는 발급 후 환불 불가합니다.")
-        if st.form_submit_button(label='동의하고 시작하기'):
-            if agree1 and agree2 and agree3:
-                st.session_state.agreed = True
-                st.rerun()
-            else:
-                st.warning("모든 항목에 동의해야 합니다.")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #D4AF37;'>VERITAS SPORTS</h1>", unsafe_allow_html=True)
+    
+    with st.container(border=True):
+        st.warning("⚠️ 서비스 이용 전 동의가 필요합니다.")
+        st.markdown("본 서비스는 AI 알고리즘을 활용한 **스포츠 데이터 분석 정보**만을 제공합니다.")
+        
+        with st.form(key='agreement_form'):
+            agree1 = st.checkbox("[필수] 결과 면책: 경기 결과에 대한 책임은 본인에게 있습니다.")
+            agree2 = st.checkbox("[필수] 준법 서약: 불법 사설 도박 이용을 금지합니다.")
+            agree3 = st.checkbox("[필수] 환불 불가: 디지털 코드 발급 후 환불 불가합니다.")
+            
+            submit = st.form_submit_button("동의하고 입장하기")
+            
+            if submit:
+                if agree1 and agree2 and agree3:
+                    st.session_state.agreed = True
+                    st.rerun()
+                else:
+                    st.error("모든 항목에 동의해야 합니다.")
     st.stop()
 
 # ---------------------------------------
-# 2. 데이터 엔진
+# 2. 데이터 로직
 # ---------------------------------------
 def generate_simulated_data():
     matches = [
@@ -139,28 +131,24 @@ def generate_simulated_data():
         
         if i == 0:
             ai_prob_h = market_prob_h * np.random.uniform(0.55, 0.75)
-            signal = "🚨 역배 감지 (상대팀 승/무)"
+            signal = "🚨 역배 감지"
         elif i == 1 or i == 2:
             ai_prob_h = market_prob_h * np.random.uniform(1.15, 1.35)
-            signal = "🔥 강력 추천 (홈 승)"
+            signal = "🔥 강력 추천"
         else:
             ai_prob_h = market_prob_h * np.random.uniform(0.92, 1.08)
             signal = "관망 (Hold)"
             
-        ai_prob_h = min(ai_prob_h, 0.98)
         value_score_h = round((ai_prob_h - market_prob_h) * 100, 1)
         data.append({
-            "경기 (Match)": f"{home} vs {away}", "시장 배당률 (Odds)": odds_h,
-            "AI 예측 승률 (%)": f"{int(ai_prob_h*100)}%", "가치 지수 (Value)": value_score_h, "AI 시그널": signal
+            "경기": f"{home} vs {away}", "배당": odds_h,
+            "AI 승률": f"{int(ai_prob_h*100)}%", "가치": value_score_h, "시그널": signal
         })
-    df = pd.DataFrame(data)
-    df['Abs_Value'] = df['가치 지수 (Value)'].abs()
-    df = df.sort_values(by="Abs_Value", ascending=False).reset_index(drop=True)
-    return df.drop(columns=['Abs_Value'])
+    return pd.DataFrame(data)
 
 # 챗봇 응답 로직
 SLANG_DICT = {
-    "TRUST": ["확실해", "믿어도", "부러지면", "한강", "진짜", "쫄려", "확신", "맞아?", "ㄹㅇ"],
+    "TRUST": ["확실해", "믿어도", "부러지면", "한강", "진짜", "쫄려", "확신", "맞아", "ㄹㅇ"],
     "MONEY": ["얼마", "올인", "소액", "강승부", "시드", "배팅", "금액", "전재산"],
     "ANOMALY": ["역배", "이변", "터지냐", "로또", "변수", "무승부", "쓰나미"],
     "CONTEXT": ["아까", "방금", "이거", "확인", "경기"]
@@ -173,41 +161,37 @@ def get_chat_response(query, df):
         if alias in query: query = query.replace(alias, official)
     
     context = st.session_state.last_analysis
-    is_context = False
     response = ""
 
-    # 1. 컨텍스트(방금 본 경기) 활용
-    if context and not any(row["경기 (Match)"] != context["match_name"] and row["경기 (Match)"].split(" ")[0] in query for i, row in df.iterrows()):
+    # 1. 컨텍스트 활용
+    if context and not any(row["경기"] != context["match_name"] and row["경기"].split(" ")[0] in query for i, row in df.iterrows()):
         if any(k in query for cat in SLANG_DICT.values() for k in cat) or "어때" in query:
-            is_context = True
-            match_name = context["match_name"]
-            value = context["value_score"]
             if any(k in query for k in SLANG_DICT["TRUST"]):
-                response = f"[{match_name}] 말씀이시군요. <br>데이터 신뢰도는 **87% 이상**입니다. <br>감정 섞지 말고 통계대로 가십시오."
+                response = f"[{context['match_name']}] 말씀이시군요.<br>데이터 신뢰도는 <span class='highlight'>87% 이상</span>입니다.<br>감정 섞지 말고 통계대로 가십시오."
             elif any(k in query for k in SLANG_DICT["MONEY"]):
                 rec = "강승부 (시드 30%)" if "강력 추천" in context['signal'] else "소액 방어 (시드 10%)"
-                response = f"해당 경기의 데이터 지수를 볼 때,<br> **[{rec}]**를 권장합니다."
+                response = f"해당 경기의 데이터 지수를 볼 때, <span class='highlight'>[{rec}]</span>를 권장합니다."
             else:
-                response = f"방금 분석한 [{match_name}]의 핵심: <br><br>👉 **{context['comment']}**"
+                response = f"방금 분석한 <strong>[{context['match_name']}]</strong>의 핵심은 이겁니다:<br><br>👉 {context['comment']}"
+            return response
 
-    # 2. 일반 질문 처리
-    if not is_context:
-        if any(k in query for k in SLANG_DICT["ANOMALY"]):
-            underdog = df[df['AI 시그널'].str.contains("역배")]
-            response = f"오늘 가장 강력한 역배 시그널은 <br>**[{underdog.iloc[0]['경기 (Match)'].split(' vs ')[0]}]**입니다.<br> Deep Dive를 확인하세요." if not underdog.empty else "현재 위험한 역배 구간은 없습니다. 정배 위주로 가십시오."
-        elif "추천" in query or "좋아" in query:
-            response = "가장 확실한 건 **VIP 3폴더**입니다.<br> 무료 픽은 참고만 하시고, 진짜 수익은 VIP 방에서 챙겨가세요."
-        elif "vip" in query or "구독" in query or "차이" in query:
-            response = "VIP는 월 99,000원입니다.<br> AI가 찍어주는 **[고배당 역배 조합]**과 **[정확한 스코어]**가 제공됩니다."
-        else:
-            match_found = False
-            for _, row in df.iterrows():
-                if row["경기 (Match)"].split(" ")[0] in query:
-                    response = f"[{row['경기 (Match)']}] 분석 결과:<br> **{row['AI 시그널']}**."
-                    match_found = True
-                    break
-            if not match_found:
-                response = "잡담은 하지 않습니다. <br>**돈 따는 법**이 궁금하면 '추천해줘'라고 물어보거나 VIP 코드를 입력하세요."
+    # 2. 일반 질문
+    if any(k in query for k in SLANG_DICT["ANOMALY"]):
+        underdog = df[df['시그널'].str.contains("역배")]
+        response = f"오늘 가장 강력한 역배 시그널은 <span class='highlight'>[{underdog.iloc[0]['경기'].split(' vs ')[0]}]</span>입니다." if not underdog.empty else "현재 위험한 역배 구간은 없습니다."
+    elif "추천" in query or "좋아" in query:
+        response = "가장 확실한 건 <span class='highlight'>VIP 3폴더</span>입니다. 무료 픽은 참고만 하시고, 수익은 VIP 방에서 챙기세요."
+    elif "vip" in query or "구독" in query:
+        response = "VIP는 월 99,000원입니다. AI가 찍어주는 <span class='highlight'>고배당 조합</span>이 제공됩니다."
+    else:
+        match_found = False
+        for _, row in df.iterrows():
+            if row["경기"].split(" ")[0] in query:
+                response = f"[{row['경기']}] 분석 결과: <span class='highlight'>{row['시그널']}</span>."
+                match_found = True
+                break
+        if not match_found:
+            response = "잡담은 모릅니다. <span class='highlight'>돈 따는 법</span>이 궁금하면 '추천해줘'라고 묻거나 VIP 코드를 입력하세요."
     
     return response
 
@@ -215,42 +199,39 @@ def get_chat_response(query, df):
 # 3. 메인 앱
 # ---------------------------------------
 def main_app():
-    st.markdown(f"<h1 style='text-align: center; font-family: serif; margin-bottom: 5px; color: #D4AF37;'>Veritas Sports AI</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center; font-size:14px; color:#555; letter-spacing: 2px;'>THE ORACLE ENGINE | {datetime.datetime.now().strftime('%Y-%m-%d')}</p>", unsafe_allow_html=True)
-    st.divider()
+    st.markdown(f"<h2 style='text-align: center; color: #D4AF37;'>Veritas Sports AI</h2>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; font-size:12px; color:#666; margin-bottom:20px;'>DATA SYNC: {datetime.datetime.now().strftime('%H:%M:%S')} • SERVER: ONLINE</div>", unsafe_allow_html=True)
 
     df = generate_simulated_data()
     vip_picks = df.head(3)
     free_picks = df.tail(-3)
 
     # VIP 섹션
-    st.markdown("<h2 style='color: #D4AF37; text-align: center;'>✨ VIP AI 추천 픽 (Top 3)</h2>", unsafe_allow_html=True)
     if not st.session_state.unlocked:
-        st.markdown('<div class="vip-section"><div class="lock-overlay">', unsafe_allow_html=True)
+        st.markdown('<div class="vip-section">', unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#D4AF37; margin:0;'>🔒 VIP PREMIUM PICKS</h3>", unsafe_allow_html=True)
+        st.markdown('<div class="lock-overlay">', unsafe_allow_html=True)
         st.dataframe(vip_picks, use_container_width=True, hide_index=True)
         st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown("### 🔒 VIP 접근 코드 입력")
-        code = st.text_input("코드 입력", type="password", label_visibility="collapsed")
-        if st.button("VIP 해제", type="primary"):
+        
+        c1, c2 = st.columns([2, 1])
+        code = c1.text_input("코드 입력", type="password", placeholder="Access Code", label_visibility="collapsed")
+        if c2.button("잠금 해제"):
             if code == TODAY_CODE or code == MASTER_KEY:
                 st.session_state.unlocked = True
                 st.rerun()
             else: st.error("잘못된 코드입니다.")
-        st.warning("⚠️ 코드 공유 적발 시 영구 차단")
-        st.markdown("</div>", unsafe_allow_html=True)
         
-        # 결제 유도
-        st.markdown("---")
-        st.markdown("### 💎 VIP 코드 즉시 발급")
-        st.info(f"**[가격]** 1일: 10,000원 | VIP 월 구독: 99,000원\n\n입금 후 카톡 주시면 1분 내 코드 발송.\n👉 **[카카오톡 채널 링크]**")
+        st.info("💰 **[1일 이용권: 10,000원]** 입금 후 카톡 주시면 즉시 코드 발송.")
+        st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.success("✨ VIP 접근 활성화됨")
+        st.success("✨ VIP ACCESS GRANTED")
         st.dataframe(vip_picks, use_container_width=True, hide_index=True)
 
     # 딥다이브 분석기
     st.markdown("---")
-    st.markdown("<h2>🧬 딥다이브(Deep Dive) 분석기</h2>", unsafe_allow_html=True)
-    match_list = df['경기 (Match)'].tolist()
+    st.markdown("### 🧬 Deep Dive Analysis")
+    match_list = df['경기'].tolist()
     selected = st.selectbox("분석할 경기 선택", ["선택 안 함"] + match_list)
     
     if selected != "선택 안 함":
@@ -258,43 +239,62 @@ def main_app():
             st.session_state.analyze_match = selected
             st.rerun()
     
+    # 분석 실행 시 (로딩 -> 결과)
     if st.session_state.analyze_match:
-        match_data = df[df["경기 (Match)"] == st.session_state.analyze_match].iloc[0]
-        stream_analysis(match_data)
+        match_data = df[df["경기"] == st.session_state.analyze_match].iloc[0]
+        
+        # [수정] 생각하는 척 (Status Bar)
+        with st.status("Veritas AI Analyzing...", expanded=True) as status:
+            st.write("📡 Global Data Fetching...")
+            time.sleep(0.8)
+            st.write("🧮 Simulating Odds...")
+            time.sleep(0.8)
+            st.write("⚡ Detecting Anomalies...")
+            time.sleep(0.5)
+            status.update(label="Analysis Complete", state="complete", expanded=False)
+
+        # 코멘트 생성
+        signal = match_data["시그널"]
+        if "역배" in signal: comment = f"시장은 홈 승리를 예상하나, AI는 **숨겨진 위험**을 감지했습니다.<br>이변 확률이 높습니다. <span class='highlight'>고위험 고수익</span> 구간입니다."
+        elif "강력" in signal: comment = f"AI 승률이 배당률을 압도합니다.<br>시장의 과소평가 구간입니다. <span class='highlight'>적극 진입</span>을 권장합니다."
+        else: comment = f"시장 예측과 AI 예측이 일치합니다.<br>특이 사항이 없습니다. <span class='highlight'>관망</span>하십시오."
+
+        # 채팅창에 결과 추가
+        st.session_state.last_analysis = {"match_name": match_data["경기"], "signal": signal, "value_score": match_data['가치'], "comment": comment}
+        st.session_state.chat_history.append({"role": "assistant", "content": comment})
+        
         st.session_state.analyze_match = None
         st.rerun()
 
     # 무료 데이터
     st.markdown("---")
-    st.markdown("<h2>📊 일반 AI 분석 데이터</h2>", unsafe_allow_html=True)
+    st.markdown("### 📊 Free Data")
     st.dataframe(free_picks, use_container_width=True, hide_index=True)
 
-    # 챗봇 인터페이스 (그라데이션 연출)
+    # 챗봇 인터페이스 (그라데이션 텍스트 적용)
     st.markdown("---")
-    st.markdown("<h2>✨ AI 분석 비서 (Q&A)</h2>", unsafe_allow_html=True)
+    st.markdown("### 💬 AI Assistant")
     
-    for i, msg in enumerate(st.session_state.chat_history):
+    for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"], avatar="✨" if msg["role"]=="assistant" else "👤"):
-            # AI 메시지면 그라데이션 스타일 적용
             if msg["role"] == "assistant":
-                # HTML로 렌더링해서 그라데이션 효과 적용
-                st.markdown(f"<div class='ai-gradient-text'>{msg['content']}</div>", unsafe_allow_html=True)
+                # [핵심] AI 메시지에만 그라데이션 스타일 적용
+                st.markdown(f"<div class='ai-response'>{msg['content']}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(msg["content"])
 
-    # 가이드 칩 (버튼 클릭 시 즉시 처리)
-    st.caption("추천 질문:")
+    # 가이드 칩 (버튼)
+    st.caption("Quick Ask:")
     c1,c2,c3,c4 = st.columns(4)
     
-    # 버튼 로직 (생각하는 척 연출 포함)
     def click_chip(text):
         st.session_state.chat_history.append({"role": "user", "content": text})
-        
-        # 생각하는 연출
-        with st.spinner("Veritas AI Calculating..."):
-            time.sleep(1.0) # 1초 딜레이
-            
         resp = get_chat_response(text, df)
+        
+        # 생각하는 척 (짧게)
+        with st.spinner("AI Thinking..."):
+            time.sleep(0.7)
+            
         st.session_state.chat_history.append({"role": "assistant", "content": resp})
         st.rerun()
 
@@ -306,5 +306,6 @@ def main_app():
     if query := st.chat_input("질문 입력..."):
         click_chip(query)
 
+# 실행
 if st.session_state.agreed: main_app()
 else: legal_disclaimer_gate()
