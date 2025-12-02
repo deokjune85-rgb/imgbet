@@ -176,57 +176,44 @@ def legal_disclaimer_gate():
     st.stop()
 
 # ---------------------------------------
-# 2. 데이터 시뮬레이션 엔진 (LIVE ENGINE)
+# 2. 데이터 엔진 (조작 모드: 강제 역배 발생)
 # ---------------------------------------
-
 def generate_simulated_data():
-    """실행 시마다 미세하게 변동되는 데이터를 생성하여 실시간 분석처럼 보이게 함."""
     matches = [
         ("맨체스터 시티", "루턴 타운 (EPL)"), ("아스널", "첼시 (EPL)"), ("리버풀", "에버턴 (EPL)"), 
         ("토트넘 홋스퍼", "웨스트햄 (EPL)"), ("바이에른 뮌헨", "도르트문트 (Bundes)"), ("레알 마드리드", "바르셀로나 (LaLiga)")
     ]
-    
     data = []
-
     for i, (home, away) in enumerate(matches):
-        # 1. 시장 배당률 생성 (+/- 5% 실시간 변동 시뮬레이션)
-        base_odds = [1.10, 1.5, 1.7, 2.2, 1.3, 2.5]
-        fluctuation = np.random.uniform(0.95, 1.05)
-        odds_h = round(base_odds[i] * fluctuation, 2)
-        odds_h = max(1.01, odds_h)
-        
-        market_prob_h = 1 / odds_h
-
-        # 2. AI 예측 확률 생성
+        # 1. 맨시티 경기(첫번째)를 무조건 '역배'로 조작
         if i == 0:
-            # 시나리오 1: 역배 감지
-            ai_prob_h = market_prob_h * np.random.uniform(0.55, 0.75)
-            signal = "🚨 역배 감지 (상대팀 승/무)"
-        elif i == 1 or i == 2:
-             # 시나리오 2, 3: 가치 베팅
-            ai_prob_h = market_prob_h * np.random.uniform(1.15, 1.35)
-            signal = "🔥 강력 추천 (홈 승)"
-        else:
-            # 나머지 경기
-            ai_prob_h = market_prob_h * np.random.uniform(0.92, 1.08)
-            signal = "관망 (Hold)"
+            odds_h = 1.15 # 시장은 맨시티가 이긴다고 봄 (배당 낮음)
+            market_prob_h = 1 / odds_h
+            
+            # AI는 맨시티가 진다고 예측 (확률을 확 낮춤)
+            ai_prob_h = 0.45 
+            signal = "🚨 역배 감지 (이변 경고)"
+            value_score_h = -40.5 # 마이너스 점수 (위험)
 
-        ai_prob_h = min(ai_prob_h, 0.98)
-        value_score_h = round((ai_prob_h - market_prob_h) * 100, 1)
+        # 나머지는 대충 랜덤
+        else:
+            base_odds = [1.5, 1.7, 2.2, 1.3, 2.5]
+            odds_h = max(1.01, round(base_odds[i-1] * np.random.uniform(0.95, 1.05), 2))
+            market_prob_h = 1 / odds_h
+            ai_prob_h = min(market_prob_h * np.random.uniform(0.9, 1.1), 0.98)
+            signal = "관망 (Hold)"
+            value_score_h = round((ai_prob_h - market_prob_h) * 100, 1)
         
         data.append({
-            "경기 (Match)": f"{home} vs {away}",
-            "시장 배당률 (Odds)": odds_h,
-            "AI 예측 승률 (%)": f"{int(ai_prob_h*100)}%",
-            "가치 지수 (Value)": value_score_h,
-            "AI 시그널": signal
+            "경기 (Match)": f"{home} vs {away}", "시장 배당률 (Odds)": odds_h,
+            "AI 예측 승률 (%)": f"{int(ai_prob_h*100)}%", "가치 지수 (Value)": value_score_h, "AI 시그널": signal
         })
-
+        
     df = pd.DataFrame(data)
+    # 역배 감지된 걸 맨 위로 올리기 위해 정렬 로직 유지
     df['Abs_Value'] = df['가치 지수 (Value)'].abs()
     df = df.sort_values(by="Abs_Value", ascending=False).reset_index(drop=True)
-    df = df.drop(columns=['Abs_Value'])
-    return df
+    return df.drop(columns=['Abs_Value'])
 
 # ---------------------------------------
 # 3. 딥다이브 분석 엔진 (The Terminal - 개선된 버전)
