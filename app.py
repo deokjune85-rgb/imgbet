@@ -123,101 +123,71 @@ def legal_disclaimer_gate():
     st.stop()
 
 # ---------------------------------------
-# 2. 데이터 엔진 (로직 수정: 역배 확률 조정)
+# 2. 데이터 엔진 (오늘 밤 실제 경기 반영)
 # ---------------------------------------
 def generate_simulated_data():
+    # [실제 경기 데이터 주입]
     matches = [
-        ("맨체스터 시티", "루턴 타운 (EPL)"), ("아스널", "첼시 (EPL)"), ("리버풀", "에버턴 (EPL)"), 
-        ("토트넘 홋스퍼", "웨스트햄 (EPL)"), ("바이에른 뮌헨", "도르트문트 (Bundes)"), ("레알 마드리드", "바르셀로나 (LaLiga)")
+        # (홈팀, 원정팀, 리그/대회)
+        ("AS 로마", "아탈란타 (Serie A)"), 
+        ("알 아흘리", "에스테글랄 (ACL Elite)"), 
+        ("페네르바체", "가지안테프 (Super Lig)"), 
+        ("세비야", "오사수나 (La Liga)")
     ]
+    
     data = []
     
-    # [수정] 역배가 너무 자주 뜨지 않게 확률 조정
-    # 0번 경기(맨시티)만 30% 확률로 역배 뜨게 하고, 나머지는 정배 위주로
-    is_upset_today = random.random() < 0.3 
-
+    # 경기별 시나리오 설정 (리얼리티 부여)
     for i, (home, away) in enumerate(matches):
-        base_odds = [1.10, 1.5, 1.7, 2.2, 1.3, 2.5]
-        fluctuation = np.random.uniform(0.95, 1.05)
-        odds_h = max(1.01, round(base_odds[i] * fluctuation, 2))
-        market_prob_h = 1 / odds_h
         
-        if i == 0 and is_upset_today:
-            # [시나리오 A] 역배 발생 (맨시티 위기)
-            ai_prob_h = market_prob_h * np.random.uniform(0.55, 0.75)
-            signal = "🚨 역배 감지 (이변 경고)"
-        elif i == 1 or i == 2:
-            # [시나리오 B] 가치 베팅 (강팀 승리)
-            ai_prob_h = market_prob_h * np.random.uniform(1.15, 1.25)
-            signal = "🔥 강력 추천 (홈 승)"
-        else:
-            # [시나리오 C] 일반적인 상황
-            ai_prob_h = market_prob_h * np.random.uniform(0.95, 1.05)
-            signal = "관망 (Hold)"
+        # 1. [AS 로마 vs 아탈란타] - 빅매치 (치열함)
+        if i == 0:
+            odds_h = 2.60  # 로마 배당 (높음)
+            market_prob_h = 1 / odds_h
+            # AI 예측: 아탈란타(원정)의 기세를 더 높게 평가 -> 역배/원정승 감지
+            ai_prob_h = 0.35 
+            signal = "🚨 역배 감지 (원정 승/무)"
             
-        ai_prob_h = min(ai_prob_h, 0.98)
+        # 2. [알 아흘리 vs 에스테글랄] - 강팀 학살 (정배)
+        elif i == 1:
+            odds_h = 1.25  # 알 아흘리 똥배당
+            market_prob_h = 1 / odds_h
+            # AI 예측: 마레즈, 피르미누 등 호화 군단 압승 예상
+            ai_prob_h = 0.88
+            signal = "🔥 강력 추천 (홈 대승)"
+            
+        # 3. [페네르바체 vs 가지안테프] - 무리뉴 매직 (정배)
+        elif i == 2:
+            odds_h = 1.18  # 페네르바체 압승 배당
+            market_prob_h = 1 / odds_h
+            # AI 예측: 안정적인 승리
+            ai_prob_h = 0.82
+            signal = "✅ 안정적 승리 예상"
+
+        # 4. [세비야 vs 오사수나] - 늪축구 (접전/무승부)
+        else:
+            odds_h = 2.10  # 애매한 배당
+            market_prob_h = 1 / odds_h
+            # AI 예측: 세비야의 기복 감지 -> 무승부 확률 높음
+            ai_prob_h = 0.45
+            signal = "⚖️ 접전/무승부 유력"
+
+        # 가치 지수 계산
         value_score_h = round((ai_prob_h - market_prob_h) * 100, 1)
         
         data.append({
-            "경기 (Match)": f"{home} vs {away}", "시장 배당률 (Odds)": odds_h,
-            "AI 예측 승률 (%)": f"{int(ai_prob_h*100)}%", "가치 지수 (Value)": value_score_h, "AI 시그널": signal
+            "경기 (Match)": f"{home} vs {away}", 
+            "시장 배당률 (Odds)": odds_h,
+            "AI 예측 승률 (%)": f"{int(ai_prob_h*100)}%", 
+            "가치 지수 (Value)": value_score_h, 
+            "AI 시그널": signal
         })
         
     df = pd.DataFrame(data)
+    # 가치 지수 절대값 순으로 정렬 (자극적인 거 위로)
     df['Abs_Value'] = df['가치 지수 (Value)'].abs()
     df = df.sort_values(by="Abs_Value", ascending=False).reset_index(drop=True)
     return df.drop(columns=['Abs_Value'])
-
-# 챗봇 응답 로직 (브랜드명 변경)
-SLANG_DICT = {
-    "TRUST": ["확실해", "믿어도", "부러지면", "한강", "진짜", "쫄려", "확신", "맞아?", "ㄹㅇ"],
-    "MONEY": ["얼마", "올인", "소액", "강승부", "시드", "배팅", "금액", "전재산"],
-    "ANOMALY": ["역배", "이변", "터지냐", "로또", "변수", "무승부", "쓰나미"],
-    "CONTEXT": ["아까", "방금", "이거", "확인", "경기"]
-}
-ALIASES = {"맨시티": "맨체스터 시티", "뮌헨": "바이에른 뮌헨", "레알": "레알 마드리드", "바르샤": "바르셀로나", "파리": "파리 생제르맹", "토트넘": "토트넘 홋스퍼"}
-
-def get_chat_response(query, df):
-    query = query.lower()
-    for alias, official in ALIASES.items():
-        if alias in query: query = query.replace(alias, official)
-    
-    context = st.session_state.last_analysis
-    is_context = False
-    response = ""
-
-    if context and not any(row["경기 (Match)"] != context["match_name"] and row["경기 (Match)"].split(" ")[0] in query for i, row in df.iterrows()):
-        if any(k in query for cat in SLANG_DICT.values() for k in cat) or "어때" in query:
-            is_context = True
-            match_name = context["match_name"]
-            value = context["value_score"]
-            if any(k in query for k in SLANG_DICT["TRUST"]):
-                response = f"[{match_name}] 데이터 신뢰도는 <span style='color:#00FF41'>87% 이상</span>입니다. 감정 섞지 말고 통계대로 가십시오."
-            elif any(k in query for k in SLANG_DICT["MONEY"]):
-                rec = "강승부 (시드 30%)" if "강력 추천" in context['signal'] else "소액 방어 (시드 10%)"
-                response = f"해당 경기의 데이터 지수를 볼 때, **[{rec}]**를 권장합니다."
-            else:
-                response = f"방금 분석한 [{match_name}]의 핵심: \n\n👉 **{context['comment']}**"
-
-    if not is_context:
-        if any(k in query for k in SLANG_DICT["ANOMALY"]):
-            underdog = df[df['AI 시그널'].str.contains("역배")]
-            response = f"오늘 가장 강력한 역배 시그널은 **[{underdog.iloc[0]['경기 (Match)'].split(' vs ')[0]}]**입니다. Deep Dive를 확인하세요." if not underdog.empty else "현재 위험한 역배 구간은 없습니다. 정배 위주로 가십시오."
-        elif "추천" in query or "좋아" in query:
-            response = "가장 확실한 건 **VIP 3폴더**입니다. 무료 픽은 참고만 하시고, 진짜 수익은 VIP 방에서 챙겨가세요."
-        elif "vip" in query or "구독" in query or "차이" in query:
-            response = "VIP는 월 99,000원입니다. AI가 찍어주는 **[고배당 역배 조합]**과 **[정확한 스코어]**가 제공됩니다."
-        else:
-            match_found = False
-            for _, row in df.iterrows():
-                if row["경기 (Match)"].split(" ")[0] in query:
-                    response = f"[{row['경기 (Match)']}] 분석 결과: **{row['AI 시그널']}**."
-                    match_found = True
-                    break
-            if not match_found:
-                response = "잡담은 하지 않습니다. **돈 따는 법**이 궁금하면 '추천해줘'라고 물어보거나 VIP 코드를 입력하세요."
-    
-    return response
 
 # ---------------------------------------
 # 3. 메인 앱
