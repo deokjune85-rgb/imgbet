@@ -10,8 +10,7 @@ import re
 # 0. 시스템 설정 및 보안 코드 (THE LOCK)
 # ---------------------------------------
 
-# [★중요★] 매일 아침 이 코드를 수정하고 재배포할 것. (예: ORACLE + MMDD)
-# 오늘 날짜(예: 12월 3일 -> 1203)를 기반으로 자동 설정
+# [★중요★] 매일 아침 자동 변경되는 코드 설정 (ORACLE + MMDD)
 TODAY_CODE = f"ORACLE{datetime.date.today().strftime('%m%d')}"
 
 # [★백도어★] 마스터키
@@ -29,16 +28,10 @@ custom_css = """
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     
     /* 1. Core Theme */
-    .stApp {
-        background-color: #0A0A0A !important;
-        color: #F5F5F5 !important;
-        font-family: 'Pretendard', sans-serif;
-    }
+    .stApp { background-color: #0A0A0A !important; color: #F5F5F5 !important; font-family: 'Pretendard', sans-serif; }
 
     /* 2. Hide Streamlit Branding */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
     
     /* 3. Data Table Styling */
     .stDataFrame thead th { background-color: #2C2C2C; color: #D4AF37; }
@@ -47,16 +40,12 @@ custom_css = """
 
     /* 4. VIP Section (The Paywall) */
     .vip-section {
-        border: 2px solid #D4AF37;
-        padding: 25px;
-        margin: 20px 0;
-        background-color: #1A1A1A;
-        text-align: center;
-        border-radius: 10px;
+        border: 2px solid #D4AF37; padding: 25px; margin: 20px 0;
+        background-color: #1A1A1A; text-align: center; border-radius: 10px;
     }
     .lock-overlay { filter: blur(5px); pointer-events: none; user-select: none; }
     
-    /* 5. CTA Button & Legal Disclaimer Button */
+    /* 5. CTA Button & Legal Disclaimer Button (Primary Buttons) */
      div.stButton > button, button[kind="primary"] {
         width: 100%;
         background-color: #D4AF37 !important;
@@ -74,8 +63,7 @@ custom_css = """
     /* 6. Legal Shield Styling */
     .legal-shield { background-color: #1A1A1A; padding: 30px; border-radius: 10px; border: 1px solid #333; }
 
-    /* 7. [★신규★] Terminal Box (Deep Dive Visualization) */
-    /* 스트림릿이 생성하는 텍스트 출력(p 태그)을 타겟팅하여 스타일 적용 */
+    /* 7. Terminal Box (Deep Dive Visualization) */
     .terminal-output p {
         background-color: #000000 !important;
         color: #00FF00 !important; /* Green Text */
@@ -84,25 +72,42 @@ custom_css = """
         border-radius: 8px !important;
         border: 1px solid #333 !important;
         min-height: 150px !important;
-        white-space: pre-wrap !important; /* 줄바꿈 유지 */
+        white-space: pre-wrap !important;
     }
     
-    /* 8. Chat Interface Styling */
+    /* 8. Chat Interface & Guide Chips Styling */
     .stChatMessage { padding: 10px 0; }
+    
+    /* 가이드 칩 버튼 스타일링 (Streamlit 버튼 기본 스타일 오버라이드) */
+    /* stHorizontalBlock 내의 버튼(가이드 칩) 스타일을 구체적으로 지정 */
+     .stApp .stHorizontalBlock div[data-testid="stButton"] > button {
+         background-color: #2C2C2C !important;
+         color: #AAAAAA !important;
+         border: 1px solid #444 !important;
+         border-radius: 20px !important;
+         padding: 8px 16px !important;
+         font-size: 14px !important;
+         width: auto !important;
+         font-weight: normal !important;
+    }
+    .stApp .stHorizontalBlock div[data-testid="stButton"] > button:hover {
+        border-color: #D4AF37 !important;
+        color: #D4AF37 !important;
+        background-color: #444444 !important;
+    }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # 세션 상태 초기화
-if 'unlocked' not in st.session_state:
-    st.session_state.unlocked = False
-if 'agreed' not in st.session_state:
-    st.session_state.agreed = False
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-# Deep Dive 분석 상태 추적용
-if 'analyze_match' not in st.session_state:
-    st.session_state.analyze_match = None
+if 'unlocked' not in st.session_state: st.session_state.unlocked = False
+if 'agreed' not in st.session_state: st.session_state.agreed = False
+if 'chat_history' not in st.session_state: st.session_state.chat_history = []
+if 'analyze_match' not in st.session_state: st.session_state.analyze_match = None
+# [★기획 1★] 컨텍스트 저장을 위한 변수
+if 'last_analysis' not in st.session_state: st.session_state.last_analysis = None
+# [★기획 2★] 가이드 칩 입력을 위한 임시 변수
+if 'temp_chat_input' not in st.session_state: st.session_state.temp_chat_input = None
 
 # ---------------------------------------
 # 1. 법적 방탄조끼 (THE SHIELD) - TOS Gate
@@ -116,9 +121,7 @@ def legal_disclaimer_gate():
     st.error("⚠️ 경고: 서비스를 이용하기 전에 다음 사항에 동의해야 합니다.")
 
     with st.form(key='agreement_form'):
-        st.markdown("""
-        본 서비스는 스포츠 데이터를 분석하여 통계적 확률을 제공하는 **'정보 제공 서비스'**입니다.
-        """)
+        st.markdown("본 서비스는 스포츠 데이터를 분석하여 통계적 확률을 제공하는 **'정보 제공 서비스'**입니다.")
         agree1 = st.checkbox("[필수] **결과 면책:** AI 예측은 100%가 아니며, 경기 결과 및 금전적 손실에 대해 본 사는 어떠한 책임도 지지 않음에 동의합니다.")
         agree2 = st.checkbox("[필수] **준법 서약:** 국민체육진흥법을 준수하며, 불법 사설 사이트 이용을 금지합니다. 합법적인 투표권(스포츠토토/배트맨) 이용을 권장함에 동의합니다.")
         agree3 = st.checkbox("[필수] **환불 불가 정책:** VIP 접근 코드는 디지털 콘텐츠 특성상, 발급 및 사용 이후 환불이 불가능함에 동의합니다.")
@@ -136,10 +139,10 @@ def legal_disclaimer_gate():
     st.stop()
 
 # ---------------------------------------
-# 2. 데이터 시뮬레이션 엔진 (★LIVE ENGINE★)
+# 2. 데이터 시뮬레이션 엔진 (LIVE ENGINE)
 # ---------------------------------------
 
-# [★수정★] 캐시 제거. 이제 매 실행마다 데이터가 동적으로 변동됨.
+# 캐시 제거됨. 매 실행마다 데이터 변동.
 def generate_simulated_data():
     """실행 시마다 미세하게 변동되는 데이터를 생성하여 실시간 분석처럼 보이게 함."""
     matches = [
@@ -155,27 +158,25 @@ def generate_simulated_data():
         base_odds = [1.10, 1.5, 1.7, 2.2, 1.3, 2.5]
         fluctuation = np.random.uniform(0.95, 1.05)
         odds_h = round(base_odds[i] * fluctuation, 2)
-        odds_h = max(1.01, odds_h) # 최소 배당률 보정
+        odds_h = max(1.01, odds_h)
         
         market_prob_h = 1 / odds_h
 
-        # 2. AI 예측 확률 생성 (핵심 시나리오는 유지하되 값은 변동)
+        # 2. AI 예측 확률 생성
         if i == 0:
-            # 시나리오 1: 역배 감지 (AI 확률을 시장보다 25~45% 낮게 설정)
+            # 시나리오 1: 역배 감지
             ai_prob_h = market_prob_h * np.random.uniform(0.55, 0.75)
             signal = "🚨 역배 감지 (상대팀 승/무)"
         elif i == 1 or i == 2:
-             # 시나리오 2, 3: 가치 베팅 (AI 확률을 시장보다 15~35% 높게 설정)
+             # 시나리오 2, 3: 가치 베팅
             ai_prob_h = market_prob_h * np.random.uniform(1.15, 1.35)
             signal = "🔥 강력 추천 (홈 승)"
         else:
-            # 나머지 경기 (시장 확률과 비슷하게 +/- 8% 변동)
+            # 나머지 경기
             ai_prob_h = market_prob_h * np.random.uniform(0.92, 1.08)
             signal = "관망 (Hold)"
 
         ai_prob_h = min(ai_prob_h, 0.98)
-
-        # 3. Veritas Value Score 계산
         value_score_h = round((ai_prob_h - market_prob_h) * 100, 1)
         
         data.append({
@@ -193,56 +194,53 @@ def generate_simulated_data():
     return df
 
 # ---------------------------------------
-# 3. [★신규★] 딥다이브 분석 엔진 (The Terminal & Streaming)
+# 3. 딥다이브 분석 엔진 (The Terminal & Streaming)
 # ---------------------------------------
 
 def stream_analysis(match_data):
-    """터미널 스타일로 실시간 분석 로그를 스트리밍(타이핑 효과)합니다."""
+    """터미널 스타일로 분석 로그를 스트리밍하고, 결과를 세션 상태에 저장합니다."""
     
     match_name = match_data["경기 (Match)"]
     signal = match_data["AI 시그널"]
+    value_score = match_data['가치 지수 (Value)']
     
-    # 시나리오 기반 분석 로그 (조작된 내용)
+    # 분석 로그 생성
     analysis_logs = [
         f"[{time.strftime('%H:%M:%S')}] 📡 Connecting to Global Sports Data Feed (Pinnacle/Betfair)...",
-        f"[{time.strftime('%H:%M:%S')}] 🔍 Initializing Analysis Kernel for: {match_name}...",
-        f"[{time.strftime('%H:%M:%S')}] 📊 Downloading real-time odds fluctuation data...",
     ]
     
-    # 특정 경기에 대한 추가 분석 로그
     if "역배 감지" in signal:
         analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 🚨 ALERT: Anomaly detected in Home Team metrics (Fatigue/Injury).")
-        analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 📉 Adjusting Win Probability (-{abs(match_data['가치 지수 (Value)'])}%)...")
+        analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 📉 Adjusting Win Probability (-{abs(value_score)}%)...")
     elif "강력 추천" in signal:
          analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 🔥 CONFIDENCE: Home Team momentum surge detected.")
-         analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 📈 Adjusting Win Probability (+{match_data['가치 지수 (Value)']}%)...")
+         analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 📈 Adjusting Win Probability (+{value_score}%)...")
 
     analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] 🧠 Running Monte Carlo Simulation (10,000 iterations)...")
-    analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] ✅ Analysis Complete. Final Verdict Generated.")
+    analysis_logs.append(f"[{time.strftime('%H:%M:%S')}] ✅ Analysis Complete.")
     
-    # 스트리밍 제너레이터 (st.write_stream 사용)
+    # 스트리밍 제너레이터
     def generator():
         for log in analysis_logs:
             for char in log:
                 yield char
-                time.sleep(0.01) # 타이핑 속도 조절
+                time.sleep(0.01)
             yield "\n"
-            time.sleep(random.uniform(0.3, 0.8)) # 로그 간 지연 시간
+            time.sleep(random.uniform(0.3, 0.8))
 
-    # 터미널 박스 스타일 적용 및 스트리밍 출력
+    # 터미널 박스 출력
     st.markdown("#### 분석 로그 (Real-time)")
-    # CSS 클래스를 적용하여 st.write_stream의 출력을 스타일링
     st.markdown('<div class="terminal-output">', unsafe_allow_html=True)
     st.write_stream(generator())
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 최종 코멘트 (스트리밍 효과)
+    # 최종 코멘트 생성
     st.markdown("### AI 최종 코멘트")
     
     if "역배 감지" in signal:
         comment = f"주의가 필요합니다. 시장은 홈팀의 승리를 예상하지만, Veritas 엔진은 숨겨진 위험 변수를 감지했습니다. 이변 확률이 통계적 임계치를 초과했습니다. 고위험-고수익 베팅 구간입니다."
     elif "강력 추천" in signal:
-        comment = f"높은 확신 구간입니다. AI 예측 승률이 시장 배당률 대비 현저히 높습니다(가치 지수: {match_data['가치 지수 (Value)']}%). 이는 시장이 해당 팀의 잠재력을 과소평가하고 있음을 의미합니다. 적극적인 베팅을 권장합니다."
+        comment = f"높은 확신 구간입니다. AI 예측 승률이 시장 배당률 대비 현저히 높습니다(가치 지수: {value_score}%). 이는 시장이 해당 팀의 잠재력을 과소평가하고 있음을 의미합니다. 적극적인 베팅을 권장합니다."
     else:
         comment = f"시장 예측과 AI 예측이 유사한 범위 내에 있습니다. 유의미한 시장 왜곡은 감지되지 않았습니다. 관망(Hold)을 권장합니다."
 
@@ -252,44 +250,111 @@ def stream_analysis(match_data):
             time.sleep(0.03)
             
     st.write_stream(comment_generator())
+    
+    # [★기획 1★] 분석 완료 후 컨텍스트 저장
+    st.session_state.last_analysis = {
+        "match_name": match_name,
+        "signal": signal,
+        "value_score": value_score,
+        "comment": comment
+    }
 
 
 # ---------------------------------------
-# 4. [★신규★] AI 챗 어시스턴트 (The Interaction)
+# 4. AI 챗 어시스턴트 (★인지 강화 모듈★)
 # ---------------------------------------
+
+# [★기획 3★] 키워드 딕셔너리 확장 (도박 은어 포함)
+SLANG_DICT = {
+    "TRUST": ["확실해", "믿어도 돼", "부러지면", "한강", "진짜지", "쫄려", "확신"],
+    "MONEY": ["얼마", "올인", "소액", "강승부", "시드", "배팅액"],
+    "ANOMALY": ["역배", "이변", "터지냐", "로또", "변수"],
+    "CONTEXT": ["아까 그거", "방금 본거", "이거 어때", "확인해줘", "이 경기"]
+}
 
 def handle_chat_query(query, df):
-    """사용자의 질문에 AI가 권위적인 어조로 답변합니다. (키워드 기반)"""
+    """사용자의 질문에 AI가 권위적인 어조로 답변합니다. (규칙 기반 + 컨텍스트 활용)"""
     
-    # 키워드 기반 답변 로직 (단순화)
     response = ""
+    query = query.lower()
     
-    if "역배" in query or "이변" in query:
-        underdog = df[df['AI 시그널'].str.contains("역배 감지")]
-        if not underdog.empty:
-            match_name = underdog.iloc[0]["경기 (Match)"]
-            response = f"현재 AI는 [{match_name}] 경기에서 심각한 시장 왜곡을 감지했습니다. 이변 가능성이 높습니다. 상세 분석은 Deep Dive를 활용하십시오."
-        else:
-            response = "현재 감지된 강력한 역배 시그널은 없습니다."
-            
-    elif "추천" in query or "확실" in query or "뭐가 좋아" in query:
-        response = "가장 신뢰도가 높은 경기는 VIP 픽 Top 3에 공개됩니다. 하지만 스포츠에 100%는 없습니다. 리스크 관리가 필수입니다."
-
-    else:
-        # 특정 경기 이름이 언급되었는지 확인 (간단한 키워드 매칭)
-        match_found = False
+    # [★기획 1★] 컨텍스트 활용 (방금 분석한 경기에 대한 질문인지 확인)
+    context = st.session_state.last_analysis
+    is_context_query = False
+    
+    if context:
+        # 쿼리에 다른 경기 이름이 포함되어 있는지 확인 (예: 맨시티 분석 후 아스널 물어봄)
+        other_match_mentioned = False
         for index, row in df.iterrows():
-            match_name = row["경기 (Match)"]
-            # 팀 이름의 일부라도 포함되면 매칭 (예: 맨시티)
-            if any(word.lower() in query.lower() for word in match_name.split(" ") if len(word) > 2):
-                signal = row["AI 시그널"]
-                value = row["가치 지수 (Value)"]
-                response = f"[{match_name}] 분석 결과: AI 시그널은 '{signal}'이며, 가치 지수는 {value}입니다. 더 자세한 내용은 Deep Dive 분석을 실행하십시오."
-                match_found = True
-                break
+                match_name = row["경기 (Match)"]
+                if match_name != context["match_name"] and any(word.lower() in query for word in match_name.split(" ") if len(word) > 2):
+                    other_match_mentioned = True
+                    break
         
-        if not match_found:
-            response = "Veritas AI는 데이터 기반 분석만을 제공합니다. 질문을 명확하게 다시 입력해 주십시오."
+        # 컨텍스트 키워드가 있거나, 불안/금액 관련 키워드가 있으며 다른 경기를 언급하지 않았을 때
+        if not other_match_mentioned and (
+            any(s in query for s in SLANG_DICT["CONTEXT"]) or 
+            any(s in query for s in SLANG_DICT["TRUST"]) or 
+            any(s in query for s in SLANG_DICT["MONEY"])):
+            
+            is_context_query = True
+            match_name = context["match_name"]
+            value = context["value_score"]
+            
+            # 불안 관련 키워드 대응
+            if any(s in query for s in SLANG_DICT["TRUST"]):
+                response = f"[{match_name}] 분석 결과에 대한 질문이군요. 데이터는 감정보다 정확합니다. 현재 신뢰도 지수는 높음({abs(value)}점) 구간입니다. 다만, 스포츠에 100%는 없습니다. 불안하시면 보험 베팅(무승부 방어)을 고려하십시오."
+            
+            # 금액 관련 키워드 대응
+            elif any(s in query for s in SLANG_DICT["MONEY"]):
+                if abs(value) > 15:
+                     response = f"[{match_name}]은 가치 지수({value}%)가 높습니다. 시장 왜곡이 확인된 구간이므로 시드머니의 20% (강승부)를 추천합니다."
+                else:
+                    response = f"[{match_name}]은 안정적인 구간입니다. 시드머니의 10% 이내를 권장합니다."
+            
+            # 단순 컨텍스트 질문
+            else:
+                response = f"방금 분석한 [{match_name}] 말씀이시군요. AI의 최종 코멘트를 다시 확인해 드리겠습니다:\n\"{context['comment'][:100]}...\""
+
+
+    if not is_context_query:
+        # [★기획 3★] 일반 키워드/슬랭 인식
+        if any(s in query for s in SLANG_DICT["ANOMALY"]):
+            underdog = df[df['AI 시그널'].str.contains("역배 감지")]
+            if not underdog.empty:
+                match_name = underdog.iloc[0]["경기 (Match)"]
+                response = f"현재 AI는 [{match_name}] 경기에서 심각한 시장 왜곡을 감지했습니다. 이변 가능성이 높습니다. 고배당을 노릴 기회입니다. Deep Dive를 확인하십시오."
+            else:
+                response = "현재 감지된 강력한 역배 시그널은 없습니다."
+                
+        elif "추천" in query or "뭐가 좋아" in query:
+            response = "가장 신뢰도가 높은 경기는 VIP 픽 Top 3에 공개됩니다. VIP 코드를 입력하여 확인하십시오."
+        
+        elif any(s in query for s in SLANG_DICT["MONEY"]):
+             response = "Veritas AI는 구체적인 배팅액을 지정하지 않습니다. 일반적인 자금 관리 전략(켈리 공식 기반)은 VIP 멤버십에서 제공됩니다."
+        
+        elif any(s in query for s in SLANG_DICT["TRUST"]):
+            response = "스포츠에 100%는 없습니다. Veritas AI는 리스크를 최소화하고 통계적 우위를 점하는 것을 목표로 합니다. 데이터 기반의 냉정한 접근이 필요합니다."
+
+        else:
+            # 특정 경기 질문 확인
+            match_found = False
+            for index, row in df.iterrows():
+                match_name = row["경기 (Match)"]
+                if any(word.lower() in query for word in match_name.split(" ") if len(word) > 2):
+                    signal = row["AI 시그널"]
+                    value = row["가치 지수 (Value)"]
+                    response = f"[{match_name}] 분석 결과: AI 시그널은 '{signal}'이며, 가치 지수는 {value}입니다. 더 자세한 내용은 Deep Dive 분석을 실행하십시오."
+                    match_found = True
+                    break
+            
+            # [★기획 4★] 무한 루프 방어 (Fallback Loop - 수익화 유도)
+            if not match_found:
+                if any(x in query for x in ["안녕", "누구", "뭐야"]):
+                     response = "저는 Veritas Sports AI입니다. 시장 데이터를 분석하여 수익 창출을 돕는 전문가 시스템입니다."
+                else:
+                    # 이해 못하는 질문은 비즈니스로 연결
+                    response = f"죄송합니다. 저는 [스포츠 데이터 분석]에 특화된 AI입니다. '{query}'에 대한 답변보다는 오늘 밤 수익을 낼 경기를 추천해 드릴까요? 텔레그램 VIP 방에서는 실시간 고급 정보도 제공 중입니다."
 
     # AI 응답 스트리밍 제너레이터
     def response_generator():
@@ -301,7 +366,6 @@ def handle_chat_query(query, df):
     with st.chat_message("assistant", avatar="✨"):
         st.write_stream(response_generator())
     
-    # 히스토리 저장
     st.session_state.chat_history.append({"role": "assistant", "content": response})
 
 # ---------------------------------------
@@ -311,16 +375,14 @@ def handle_chat_query(query, df):
 def main_app():
     # [Header]
     st.markdown(f"<h1 style='text-align: center; font-family: serif; margin-bottom: 5px; color: #D4AF37;'>Veritas Sports AI</h1>", unsafe_allow_html=True)
-    # 실시간성 강조를 위해 시간까지 표시
     st.markdown(f"<p style='text-align: center; font-size:14px; color:#555; letter-spacing: 2px;'>THE ORACLE ENGINE | {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}</p>", unsafe_allow_html=True)
     st.divider()
 
-    # 데이터 로드 및 분할 (★매 실행마다 변동됨★)
+    # 데이터 로드 및 분할 (매 실행마다 변동됨)
     df = generate_simulated_data()
     
-    # 실시간 데이터 로딩 시각화 (Spinner 사용)
     with st.spinner("Veritas 엔진이 최신 데이터를 분석 중입니다... (실시간 변동 적용)"):
-         time.sleep(0.5) # 약간의 딜레이로 분석 효과 극대화
+         time.sleep(0.5)
 
     VIP_PICKS_COUNT = 3
     vip_picks = df.head(VIP_PICKS_COUNT)
@@ -329,7 +391,6 @@ def main_app():
     # ---------------------------------------
     # VIP 섹션 (The Paywall)
     # ---------------------------------------
-
     st.markdown("<h2 style='color: #D4AF37; text-align: center;'>✨ VIP AI 추천 픽 (Top 3)</h2>", unsafe_allow_html=True)
 
     if not st.session_state.unlocked:
@@ -341,7 +402,7 @@ def main_app():
         st.markdown("### 🔒 오늘의 VIP 접근 코드 입력")
         access_code = st.text_input("결제 후 발급받은 접근 코드를 입력하세요.", type="password")
         
-        if st.button("VIP 픽 잠금 해제", type="primary"):
+        if st.button("VIP 픽 잠금 해제", type="primary", key="unlock_vip"):
             if access_code == TODAY_CODE or access_code == MASTER_KEY:
                 st.session_state.unlocked = True
                 st.rerun()
@@ -357,7 +418,6 @@ def main_app():
         st.dataframe(vip_picks, use_container_width=True, hide_index=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-
     # [Monetization CTA]
     if not st.session_state.unlocked:
         st.markdown("---")
@@ -370,29 +430,24 @@ def main_app():
         """)
 
     # ---------------------------------------
-    # [★신규★] 딥다이브 분석기 (The Analyzer)
+    # 딥다이브 분석기 (The Analyzer)
     # ---------------------------------------
     st.markdown("---")
     st.markdown("<h2>🧬 딥다이브(Deep Dive) 분석기</h2>", unsafe_allow_html=True)
     
-    # 전체 경기 목록에서 선택
     match_list = df['경기 (Match)'].tolist()
     selected_match_name = st.selectbox("상세 분석을 원하는 경기를 선택하세요.", ["선택 안 함"] + match_list)
     
-    # 분석 실행 버튼
     if selected_match_name != "선택 안 함":
-        if st.button("AI 심층 분석 실행", type="primary"):
-            # 세션 상태에 분석 대상 저장 후 재실행 (안정적인 스트리밍을 위해)
+        if st.button("AI 심층 분석 실행", type="primary", key="run_analysis"):
             st.session_state.analyze_match = selected_match_name
             st.rerun()
 
-    # 분석 대상이 설정되어 있으면 분석 실행 (Rerun 후 실행됨)
     if st.session_state.analyze_match:
-        # 데이터프레임에서 해당 경기 데이터 찾기
         match_data = df[df["경기 (Match)"] == st.session_state.analyze_match]
         if not match_data.empty:
+            # 분석 실행 및 Context 저장
             stream_analysis(match_data.iloc[0])
-        # 분석 완료 후 초기화
         st.session_state.analyze_match = None 
 
     # ---------------------------------------
@@ -414,14 +469,48 @@ def main_app():
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
-    # 챗 입력 처리
-    if user_query := st.chat_input("분석 결과에 대해 질문하세요. (예: 맨시티 경기 어때?)"):
+    # [★기획 2: 가이드 칩 (Guide Chips)] 구현
+    st.markdown("<p style='font-size:12px; color:#666; margin-bottom: 5px;'>추천 질문:</p>", unsafe_allow_html=True)
+    
+    # st.columns를 사용하여 버튼들을 가로로 배치
+    cols = st.columns(4)
+    
+    # 버튼 클릭 시 temp_chat_input에 저장하고 재실행
+    with cols[0]:
+        if st.button("💣 역배 추천", key="chip1"):
+            st.session_state.temp_chat_input = "오늘 역배 터질 경기 있어?"
+            st.rerun()
+    with cols[1]:
+        if st.button("💰 얼마 걸까?", key="chip2"):
+            st.session_state.temp_chat_input = "베팅 금액 추천해줘."
+            st.rerun()
+            
+    # 컨텍스트가 있을 때만 활성화되는 버튼
+    if st.session_state.last_analysis:
+        with cols[2]:
+            if st.button("🤔 이거 확실해?", key="chip3"):
+                st.session_state.temp_chat_input = "방금 분석한 경기 진짜 믿어도 돼? 한강 가기 싫다."
+                st.rerun()
+    with cols[3]:
+         if st.button("🏆 VIP 정보?", key="chip4"):
+            st.session_state.temp_chat_input = "VIP 정보는 뭐가 달라?"
+            st.rerun()
+
+    # 챗 입력 처리 (st.chat_input 또는 temp_chat_input 사용)
+    user_query = st.chat_input("분석 결과에 대해 질문하세요. (예: 맨시티 경기 어때?)")
+    
+    # temp_chat_input이 우선권을 가짐
+    if st.session_state.temp_chat_input:
+        user_query = st.session_state.temp_chat_input
+        st.session_state.temp_chat_input = None # 사용 후 초기화
+
+    if user_query:
         # 유저 메시지 표시 및 저장
         with st.chat_message("user", avatar="👤"):
             st.markdown(user_query)
         st.session_state.chat_history.append({"role": "user", "content": user_query})
         
-        # AI 응답 처리 (스트리밍 효과 포함)
+        # AI 응답 처리 (스트리밍 효과 및 강화된 로직 포함)
         handle_chat_query(user_query, df)
 
 
@@ -429,7 +518,6 @@ def main_app():
 # 실행 제어 (Gatekeeper)
 # ---------------------------------------
 
-# 동의 여부를 확인하여 메인 앱 실행 또는 게이트 표시
 if st.session_state.agreed:
     main_app()
 else:
