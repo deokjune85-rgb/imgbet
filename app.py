@@ -115,17 +115,36 @@ if 'last_analysis' not in st.session_state: st.session_state.last_analysis = Non
 if 'temp_chat_input' not in st.session_state: st.session_state.temp_chat_input = None
 if 'analysis_in_progress' not in st.session_state: st.session_state.analysis_in_progress = False
 
-# [CRITICAL BUG FIX] 안정화된 타이핑 함수
-def type_writer(text, placeholder, speed=0.02):
-    """안정적인 타이핑 애니메이션 (DOM 조작 최소화)"""
-    display_text = ""
-    try:
-        for char in text:
-            display_text += char
-            placeholder.markdown(display_text + "▍")
-            time.sleep(speed)
-    finally:
-        placeholder.markdown(display_text)
+# [GRADIENT REVEAL] 그라데이션 방식의 텍스트 애니메이션
+def gradient_reveal(text, placeholder, thinking_time=1.0):
+    """
+    생각하는 느낌을 주고, 텍스트를 그라데이션으로 reveal
+    """
+    # 1단계: 생각 중 표시
+    placeholder.markdown("💭 *분석 중...*")
+    time.sleep(thinking_time)
+    
+    # 2단계: 그라데이션 reveal (단어 단위로 fade-in)
+    words = text.split(' ')
+    total_words = len(words)
+    
+    for i in range(1, total_words + 1):
+        # 이미 나온 단어들 + 페이드인 중인 마지막 단어
+        visible_text = ' '.join(words[:i-1])
+        fading_word = words[i-1] if i <= total_words else ''
+        
+        # 마지막 단어는 opacity 점진적 증가
+        html = f"""
+        <div style='line-height: 1.6;'>
+            {visible_text} 
+            <span style='opacity: 0.3; transition: opacity 0.3s;'>{fading_word}</span>
+        </div>
+        """
+        placeholder.markdown(html, unsafe_allow_html=True)
+        time.sleep(0.08)  # 단어 간 딜레이
+    
+    # 3단계: 최종 완성본 출력 (깔끔하게)
+    placeholder.markdown(text)
 
 # ---------------------------------------
 # 1. 법적 방탄조끼 (THE SHIELD) - TOS Gate
@@ -481,10 +500,10 @@ def main_app():
             
             is_last_message = (i == len(st.session_state.chat_history) - 1)
             
-            # 마지막 AI 메시지이고 아직 애니메이션되지 않았다면 타이핑 효과 적용
+            # 마지막 AI 메시지이고 아직 애니메이션되지 않았다면 그라데이션 효과 적용
             if message["role"] == "assistant" and not message.get("animated") and is_last_message:
                 placeholder = st.empty()
-                type_writer(message["content"], placeholder)
+                gradient_reveal(message["content"], placeholder, thinking_time=0.8)
                 message["animated"] = True
             else:
                 st.markdown(message["content"])
