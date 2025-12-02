@@ -89,29 +89,32 @@ if 'last_analysis' not in st.session_state: st.session_state.last_analysis = Non
 if 'temp_chat_input' not in st.session_state: st.session_state.temp_chat_input = None
 
 # ---------------------------------------
-# 1. 법적 방탄조끼 (강력한 세션 체크)
+# 1. 법적 방탄조끼 (THE SHIELD) - TOS Gate
 # ---------------------------------------
 def legal_disclaimer_gate():
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #D4AF37;'>VERITAS SPORTS</h1>", unsafe_allow_html=True)
+    """서비스 진입 전 강제적으로 법적 고지 및 동의를 받습니다."""
+    st.markdown('<div class="legal-shield">', unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #D4AF37;'>Veritas Sports AI</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>이용 약관 및 법적 고지</h3>", unsafe_allow_html=True)
     
-    with st.container(border=True):
-        st.warning("⚠️ 서비스 이용 전 동의가 필요합니다.")
-        st.markdown("본 서비스는 AI 알고리즘을 활용한 **스포츠 데이터 분석 정보**만을 제공합니다.")
-        
-        with st.form(key='agreement_form'):
-            agree1 = st.checkbox("[필수] 결과 면책: 경기 결과에 대한 책임은 본인에게 있습니다.")
-            agree2 = st.checkbox("[필수] 준법 서약: 불법 사설 도박 이용을 금지합니다.")
-            agree3 = st.checkbox("[필수] 환불 불가: 디지털 코드 발급 후 환불 불가합니다.")
-            
-            submit = st.form_submit_button("동의하고 입장하기")
-            
-            if submit:
-                if agree1 and agree2 and agree3:
-                    st.session_state.agreed = True
-                    st.rerun()
-                else:
-                    st.error("모든 항목에 동의해야 합니다.")
+    st.error("⚠️ 경고: 서비스를 이용하기 전에 다음 사항에 동의해야 합니다.")
+
+    with st.form(key='agreement_form'):
+        st.markdown("본 서비스는 스포츠 데이터를 분석하여 통계적 확률을 제공하는 **'정보 제공 서비스'**입니다.")
+        agree1 = st.checkbox("[필수] **결과 면책:** AI 예측은 100%가 아니며, 경기 결과 및 금전적 손실에 대해 본 사는 어떠한 책임도 지지 않음에 동의합니다.")
+        agree2 = st.checkbox("[필수] **준법 서약:** 국민체육진흥법을 준수하며, 불법 사설 사이트 이용을 금지합니다. 합법적인 투표권(스포츠토토/배트맨) 이용을 권장함에 동의합니다.")
+        agree3 = st.checkbox("[필수] **환불 불가 정책:** VIP 접근 코드는 디지털 콘텐츠 특성상, 발급 및 사용 이후 환불이 불가능함에 동의합니다.")
+
+        submit_button = st.form_submit_button(label='동의하고 Veritas AI 시작하기')
+
+        if submit_button:
+            if agree1 and agree2 and agree3:
+                st.session_state.agreed = True
+                st.rerun()
+            else:
+                st.warning("모든 필수 항목에 동의해야 서비스를 이용할 수 있습니다.")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 # ---------------------------------------
